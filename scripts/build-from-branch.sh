@@ -4,7 +4,7 @@ set -euo pipefail
 REPO_URL="$1"
 BRANCH="$2"
 PROJECT="$3"
-BASE_DIR="$HOME/Projects"
+BASE_DIR="$HOME/Projets"
 cd "$BASE_DIR"
 git clone --branch "$BRANCH" --depth 1 "$REPO_URL" "$PROJECT"
 cd "$PROJECT"
