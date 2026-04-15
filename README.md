@@ -96,6 +96,100 @@ ninja
 open ./NotepadNext.app
 ```
 
+## Dry-Run Mode: Test Before Building
+
+Before executing a full build from a development branch, it is recommended to run a **dry-run simulation**. This verifies all prerequisites, checks for potential conflicts, and displays the exact commands that would be executed—**without modifying your system**.
+
+### Usage
+
+```bash
+# Copy-paste this dry-run block (100% safe, read-only operations)
+echo "🔍 [DRY-RUN] Simulation of NotepadNext build from l10n_master"
+echo "=============================================================="
+
+# 1. Verify core tools
+echo -e "\n📦 System tools :"
+command -v git >/dev/null && echo "  ✅ git : $(git --version | cut -d' ' -f3)" || echo "  ❌ git missing"
+command -v cmake >/dev/null && echo "  ✅ cmake : $(cmake --version | head -n1)" || echo "  ❌ cmake missing"
+command -v ninja >/dev/null && echo "  ✅ ninja : $(ninja --version)" || echo "  ❌ ninja missing"
+
+# 2. Verify Qt@6
+echo -e "\n🎨 Qt framework :"
+if brew list qt@6 >/dev/null 2>&1; then
+  echo "  ✅ qt@6 installed : $(brew info qt@6 --json | jq -r '.[0].versions.stable')"
+  echo "  📍 Path : $(brew --prefix qt@6)"
+else
+  echo "  ⚠️  qt@6 not installed (would be installed via: brew install qt@6)"
+fi
+
+# 3. Check disk space
+echo -e "\n💾 Disk space :"
+FREE_SPACE=$(df -g ~/Projets | tail -1 | awk '{print $4}')
+echo "  📊 Free in ~/Projets : ${FREE_SPACE}GB"
+if [[ $FREE_SPACE -lt 3 ]]; then
+  echo "  ⚠️  Warning: less than 3GB free (recommended: 5GB+)"
+else
+  echo "  ✅ Sufficient space for build"
+fi
+
+# 4. Check for naming conflicts
+echo -e "\n📁 Potential conflicts :"
+if [[ -d ~/Projets/NotepadNext-l10n ]]; then
+  echo "  ⚠️  Directory ~/Projets/NotepadNext-l10n already exists"
+  echo "     → Script may fail or overwrite (depending on git clone)"
+else
+  echo "  ✅ No conflict: ~/Projets/NotepadNext-l10n will be created"
+fi
+
+# 5. Display commands that WOULD be executed (without running them)
+echo -e "\n🔧 Commands that would be executed :"
+cat << 'CMD_EOF'
+  1. cd ~/Projets
+  2. git clone --branch l10n_master --depth 1 \
+        https://github.com/dail8859/NotepadNext.git \
+        NotepadNext-l10n
+  3. cd NotepadNext-l10n && mkdir -p build && cd build
+  4. cmake -G Ninja \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_PREFIX_PATH="$(brew --prefix qt@6)" \
+        ..
+  5. ninja
+  6. open ./NotepadNext.app  # to test
+CMD_EOF
+
+# 6. Estimates
+echo -e "\n⏱️  Estimates :"
+echo "  • Download: ~50-150 MB (depending on connection)"
+echo "  • Final build size: ~1.5-2.5 GB"
+echo "  • M2 compilation time: ~5-15 minutes"
+echo "  • Peak RAM usage: ~2-4 GB"
+
+echo -e "\n✅ [DRY-RUN COMPLETE] No modifications performed."
+echo "🚀 To launch the REAL build, execute:"
+echo "   ./scripts/build-from-branch.sh https://github.com/dail8859/NotepadNext.git l10n_master NotepadNext-l10n"
+```
+
+### Interpreting the Output
+
+| Message | Meaning | Action |
+|---------|---------|--------|
+| `✅ git/cmake/ninja` | Tools present | Proceed to build |
+| `❌ cmake missing` | Dependency missing | Run `brew install cmake` first |
+| `✅ qt@6 installed` | Qt prerequisite OK | Ready to build |
+| `⚠️ qt@6 not installed` | Will be auto-installed | Real build will trigger `brew install qt@6` |
+| `✅ Sufficient space` | >3GB free | OK to compile |
+| `⚠️ Directory exists` | Naming conflict | Rename or remove `~/Projets/NotepadNext-l10n` first |
+
+### Why Use Dry-Run?
+
+1. **Safety-first**: Verify prerequisites before committing to a 15-minute build
+2. **Conflict detection**: Catch naming collisions or permission issues early
+3. **Resource planning**: Know exactly how much disk/RAM/time to expect
+4. **Educational**: See the exact commands before they execute
+5. **Reversible**: Zero side effects—purely informational
+
+> 💡 **Tip**: Save the dry-run block as a standalone script `scripts/dry-run-build.sh` for reuse across projects.
+
 ## Updating a Branch Build
 
 ```bash
